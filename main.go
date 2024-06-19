@@ -1,66 +1,23 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"log"
-	"net"
-	"os"
-	"strings"
+	"github.com/aws/aws-lambda-go/lambda"
 )
 
-func main() {
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print("domain, hasMx, hasSPF, sprRecord, hasDMARC, dmarcRecord \n")
-
-	for scanner.Scan() {
-		checkDomain(scanner.Text())
-	}
-
-	if err := scanner.Err(); err != nil {
-		log.Fatalf("Error: could not read from input: %v\n", err)
-	}
+type MyEvent struct {
+	Name string `json:"what is your name?"`
+	Age  int    `json:"How old are you?"`
 }
 
-func checkDomain(domain string) {
-	var hasMx, hasSPF, hasDMARC bool
-	var spfRecord, dmarcRecord string
+type MyResponse struct {
+	Message string `json:"How old are you"`
+}
 
-	mxRecords, err := net.LookupMX(domain)
+func main() {
+	lambda.Start(HandleLambdaEvent)
+}
 
-	if err != nil {
-		log.Fatalf("Error: %v\n", err)
-	}
-
-	if len(mxRecords) > 0 {
-		hasMx = true
-	}
-
-	txtRecords, err := net.LookupTXT(domain)
-	if err != nil {
-		log.Fatalf("Error: %v\n", err)
-	}
-
-	for _, record := range txtRecords {
-		if strings.HasPrefix(record, "v=spf1") {
-			hasSPF = true
-			spfRecord = record
-			break
-		}
-	}
-
-	dmarcRecords, err := net.LookupTXT("_dmarc." + domain)
-	if err != nil {
-		log.Fatalf("Error: %v\n", err)
-	}
-
-	for _, record := range dmarcRecords {
-		if strings.HasPrefix(record, "v=DMARC1") {
-			hasDMARC = true
-			dmarcRecord = record
-			break
-		}
-	}
-
-	fmt.Printf("%v %v %v %v %v %v\n", domain, hasMx, hasSPF, spfRecord, hasDMARC, dmarcRecord)
+func HandleLambdaEvent(event MyEvent) (MyResponse, error) {
+	return MyResponse{Message: fmt.Sprintf("%s is %d years old", event.Name, event.Age)}, nil
 }
